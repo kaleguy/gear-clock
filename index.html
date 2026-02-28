@@ -21,210 +21,260 @@
   </style>
 </head>
 <body>
-  <svg id="clock" width="800" height="600" viewBox="0 0 800 600">
-    <defs>
-      <!-- Metallic gradient for small gear -->
-      <radialGradient id="smallGearGrad" cx="50%" cy="40%" r="55%">
-        <stop offset="0%" stop-color="#c0c8d8"/>
-        <stop offset="40%" stop-color="#8a95a8"/>
-        <stop offset="100%" stop-color="#5a6577"/>
-      </radialGradient>
-      <!-- Metallic gradient for large gear -->
-      <radialGradient id="largeGearGrad" cx="50%" cy="40%" r="55%">
-        <stop offset="0%" stop-color="#d4b896"/>
-        <stop offset="40%" stop-color="#b08d6a"/>
-        <stop offset="100%" stop-color="#7a6245"/>
-      </radialGradient>
-      <!-- Hub gradients -->
-      <radialGradient id="hubGrad1" cx="50%" cy="40%" r="50%">
-        <stop offset="0%" stop-color="#e0e4ec"/>
-        <stop offset="100%" stop-color="#6a7588"/>
-      </radialGradient>
-      <radialGradient id="hubGrad2" cx="50%" cy="40%" r="50%">
-        <stop offset="0%" stop-color="#e8d4bc"/>
-        <stop offset="100%" stop-color="#8a7050"/>
-      </radialGradient>
-    </defs>
-
-    <!-- Large gear (minute) -->
-    <g id="largeGear" transform="translate(440, 300)">
-      <path id="largeGearPath" fill="url(#largeGearGrad)" stroke="#5a4a32" stroke-width="1.5"/>
-      <!-- Spokes -->
-      <g id="largeSpokes" stroke="#7a6245" stroke-width="4" fill="none" opacity="0.5"></g>
-      <!-- Hub -->
-      <circle r="28" fill="url(#hubGrad2)" stroke="#5a4a32" stroke-width="1.5"/>
-      <circle r="8" fill="#1a1a2e" stroke="#5a4a32" stroke-width="1"/>
-    </g>
-
-    <!-- Small gear (second) -->
-    <g id="smallGear" transform="translate(0, 0)">
-      <path id="smallGearPath" fill="url(#smallGearGrad)" stroke="#3a4555" stroke-width="1.2"/>
-      <!-- Hub -->
-      <circle r="12" fill="url(#hubGrad1)" stroke="#3a4555" stroke-width="1.2"/>
-      <circle r="4" fill="#1a1a2e" stroke="#3a4555" stroke-width="1"/>
-    </g>
-
-    <!-- Labels -->
-    <text x="440" y="540" text-anchor="middle" fill="#b08d6a" font-size="14" opacity="0.7">1 rev / minute</text>
-    <text id="smallLabel" text-anchor="middle" fill="#8a95a8" font-size="12" opacity="0.7">1 rev / second</text>
-  </svg>
+  <svg id="clock" width="420" height="820" viewBox="0 0 420 820"></svg>
 
   <script>
-    // Gear tooth generation using involute-style profile
-    function generateGearPath(numTeeth, pitchRadius, toothDepth, pressureAngle) {
-      const outerRadius = pitchRadius + toothDepth * 0.5;
-      const innerRadius = pitchRadius - toothDepth * 0.6;
-      const toothAngle = (2 * Math.PI) / numTeeth;
-      const halfTooth = toothAngle * 0.28;
-      const tipRelief = toothDepth * 0.08;
+    const svg = document.getElementById('clock');
+    const ns = 'http://www.w3.org/2000/svg';
 
+    function createEl(tag, attrs) {
+      const el = document.createElementNS(ns, tag);
+      for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, String(v));
+      return el;
+    }
+
+    function gearPath(numTeeth, mod) {
+      const pr = (numTeeth * mod) / 2;
+      const outer = pr + mod;
+      const root = pr - mod * 1.25;
+      const ta = (2 * Math.PI) / numTeeth;
       let d = '';
       for (let i = 0; i < numTeeth; i++) {
-        const angle = i * toothAngle;
-
-        // Root point (start)
-        const r1a = angle - toothAngle * 0.5;
-        const r1x = innerRadius * Math.cos(r1a);
-        const r1y = innerRadius * Math.sin(r1a);
-
-        // Rising flank base
-        const r2a = angle - halfTooth * 1.1;
-        const r2x = innerRadius * Math.cos(r2a);
-        const r2y = innerRadius * Math.sin(r2a);
-
-        // Tooth tip leading
-        const t1a = angle - halfTooth * 0.7;
-        const t1x = outerRadius * Math.cos(t1a);
-        const t1y = outerRadius * Math.sin(t1a);
-
-        // Tooth tip center-leading
-        const tc1a = angle - halfTooth * 0.35;
-        const tc1x = (outerRadius - tipRelief) * Math.cos(tc1a);
-        const tc1y = (outerRadius - tipRelief) * Math.sin(tc1a);
-
-        // Tooth tip center-trailing
-        const tc2a = angle + halfTooth * 0.35;
-        const tc2x = (outerRadius - tipRelief) * Math.cos(tc2a);
-        const tc2y = (outerRadius - tipRelief) * Math.sin(tc2a);
-
-        // Tooth tip trailing
-        const t2a = angle + halfTooth * 0.7;
-        const t2x = outerRadius * Math.cos(t2a);
-        const t2y = outerRadius * Math.sin(t2a);
-
-        // Falling flank base
-        const r3a = angle + halfTooth * 1.1;
-        const r3x = innerRadius * Math.cos(r3a);
-        const r3y = innerRadius * Math.sin(r3a);
-
-        // Root point (end)
-        const r4a = angle + toothAngle * 0.5;
-        const r4x = innerRadius * Math.cos(r4a);
-        const r4y = innerRadius * Math.sin(r4a);
-
-        if (i === 0) {
-          d += `M ${r1x} ${r1y} `;
-        }
-
-        // Root arc
-        d += `A ${innerRadius} ${innerRadius} 0 0 1 ${r2x} ${r2y} `;
-        // Rising flank
-        d += `C ${(innerRadius + toothDepth * 0.3) * Math.cos(r2a)} ${(innerRadius + toothDepth * 0.3) * Math.sin(r2a)} `;
-        d += `${(outerRadius - toothDepth * 0.2) * Math.cos(t1a)} ${(outerRadius - toothDepth * 0.2) * Math.sin(t1a)} `;
-        d += `${t1x} ${t1y} `;
-        // Tooth tip
-        d += `C ${tc1x} ${tc1y} ${tc2x} ${tc2y} ${t2x} ${t2y} `;
-        // Falling flank
-        d += `C ${(outerRadius - toothDepth * 0.2) * Math.cos(t2a)} ${(outerRadius - toothDepth * 0.2) * Math.sin(t2a)} `;
-        d += `${(innerRadius + toothDepth * 0.3) * Math.cos(r3a)} ${(innerRadius + toothDepth * 0.3) * Math.sin(r3a)} `;
-        d += `${r3x} ${r3y} `;
-        // Root arc to next tooth
-        d += `A ${innerRadius} ${innerRadius} 0 0 1 ${r4x} ${r4y} `;
+        const c = i * ta;
+        const a0 = c - ta / 4, a1 = c, a2 = c + ta / 4, a3 = c + ta * 3 / 4;
+        if (i === 0) d += `M ${(root * Math.cos(a0)).toFixed(2)} ${(root * Math.sin(a0)).toFixed(2)} `;
+        d += `L ${(outer * Math.cos(a1)).toFixed(2)} ${(outer * Math.sin(a1)).toFixed(2)} `;
+        d += `L ${(root * Math.cos(a2)).toFixed(2)} ${(root * Math.sin(a2)).toFixed(2)} `;
+        d += `A ${root.toFixed(2)} ${root.toFixed(2)} 0 0 1 ${(root * Math.cos(a3)).toFixed(2)} ${(root * Math.sin(a3)).toFixed(2)} `;
       }
-      d += 'Z';
-      return d;
+      return { d: d + 'Z', pr, outer, root };
     }
 
-    // Configuration
-    const largeTeeth = 60;
-    const smallTeeth = 10;
-    const module = 3.2; // tooth size
-    const largePitchR = (largeTeeth * module) / 2;
-    const smallPitchR = (smallTeeth * module) / 2;
-    const toothDepth = module * 2.2;
+    const defs = createEl('defs', {});
+    defs.innerHTML = `
+      <radialGradient id="silver" cx="50%" cy="38%" r="55%">
+        <stop offset="0%" stop-color="#d0d8e8"/>
+        <stop offset="50%" stop-color="#8a95a8"/>
+        <stop offset="100%" stop-color="#5a6577"/>
+      </radialGradient>
+      <radialGradient id="brass" cx="50%" cy="38%" r="55%">
+        <stop offset="0%" stop-color="#e8d4a0"/>
+        <stop offset="50%" stop-color="#b08d5a"/>
+        <stop offset="100%" stop-color="#7a6240"/>
+      </radialGradient>
+      <radialGradient id="copper" cx="50%" cy="38%" r="55%">
+        <stop offset="0%" stop-color="#e8b89a"/>
+        <stop offset="50%" stop-color="#b07050"/>
+        <stop offset="100%" stop-color="#7a4a30"/>
+      </radialGradient>
+      <radialGradient id="darkBrass" cx="50%" cy="38%" r="55%">
+        <stop offset="0%" stop-color="#c8b878"/>
+        <stop offset="50%" stop-color="#907840"/>
+        <stop offset="100%" stop-color="#605020"/>
+      </radialGradient>
+    `;
+    svg.appendChild(defs);
 
-    // Position small gear so pitch circles are tangent
-    const largeCx = 440;
-    const largeCy = 300;
-    const centerDist = largePitchR + smallPitchR;
-    // Place small gear to the upper-left
-    const meshAngle = -Math.PI * 0.42;
-    const smallCx = largeCx + centerDist * Math.cos(meshAngle);
-    const smallCy = largeCy + centerDist * Math.sin(meshAngle);
+    const mod = 2.5;
 
-    // Generate gear paths
-    document.getElementById('largeGearPath').setAttribute('d', generateGearPath(largeTeeth, largePitchR, toothDepth, 20));
-    document.getElementById('smallGearPath').setAttribute('d', generateGearPath(smallTeeth, smallPitchR, toothDepth, 20));
+    const gears = [
+      { id: 'A', teeth: 10, fill: 'url(#silver)',    stroke: '#3a4555' },
+      { id: 'B', teeth: 60, fill: 'url(#brass)',     stroke: '#5a4a32' },
+      { id: 'C', teeth: 10, fill: 'url(#copper)',    stroke: '#5a3a28' },
+      { id: 'D', teeth: 60, fill: 'url(#brass)',     stroke: '#5a4a32' },
+      { id: 'E', teeth: 12, fill: 'url(#copper)',    stroke: '#5a3a28' },
+      { id: 'F', teeth: 20, fill: 'url(#darkBrass)', stroke: '#4a3a18' },
+      { id: 'G', teeth: 10, fill: 'url(#copper)',    stroke: '#5a3a28' },
+      { id: 'H', teeth: 60, fill: 'url(#brass)',     stroke: '#5a4a32' },
+    ];
 
-    // Generate spokes for large gear
-    const spokesGroup = document.getElementById('largeSpokes');
-    for (let i = 0; i < 6; i++) {
-      const angle = (i * Math.PI * 2) / 6;
-      const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-      line.setAttribute('x1', 30 * Math.cos(angle));
-      line.setAttribute('y1', 30 * Math.sin(angle));
-      line.setAttribute('x2', (largePitchR - toothDepth) * Math.cos(angle));
-      line.setAttribute('y2', (largePitchR - toothDepth) * Math.sin(angle));
-      spokesGroup.appendChild(line);
+    for (const g of gears) Object.assign(g, gearPath(g.teeth, mod));
+    const [A, B, C, D, E, F, G, H] = gears;
+
+    // --- Portrait column layout ---
+    // Gears zigzag down the column, alternating slightly left and right
+
+    // B anchored near top center
+    B.cx = 190; B.cy = 150;
+
+    // A above B, slightly right
+    const angleAB = -Math.PI / 2 + 0.3;
+    A.cx = B.cx + (A.pr + B.pr) * Math.cos(angleAB);
+    A.cy = B.cy + (A.pr + B.pr) * Math.sin(angleAB);
+
+    // C compound on B
+    C.cx = B.cx; C.cy = B.cy;
+
+    // D below B, slightly right
+    const angleCD = Math.PI / 2 - 0.4;
+    D.cx = C.cx + (C.pr + D.pr) * Math.cos(angleCD);
+    D.cy = C.cy + (C.pr + D.pr) * Math.sin(angleCD);
+
+    // E compound on D
+    E.cx = D.cx; E.cy = D.cy;
+
+    // F below D, slightly left
+    const angleEF = Math.PI / 2 + 0.4;
+    F.cx = E.cx + (E.pr + F.pr) * Math.cos(angleEF);
+    F.cy = E.cy + (E.pr + F.pr) * Math.sin(angleEF);
+
+    // G compound on F
+    G.cx = F.cx; G.cy = F.cy;
+
+    // H below F, slightly right
+    const angleGH = Math.PI / 2 - 0.3;
+    H.cx = G.cx + (G.pr + H.pr) * Math.cos(angleGH);
+    H.cy = G.cy + (G.pr + H.pr) * Math.sin(angleGH);
+
+    // --- Angular velocities ---
+    A.omega = -360;
+    B.omega = -A.omega * (A.teeth / B.teeth);
+    C.omega = B.omega;
+    D.omega = -C.omega * (C.teeth / D.teeth);
+    E.omega = D.omega;
+    F.omega = -E.omega * (E.teeth / F.teeth);
+    G.omega = F.omega;
+    H.omega = -G.omega * (G.teeth / H.teeth);
+
+    // --- Phase alignment ---
+    function meshPhase(driver, driven) {
+      const angle = Math.atan2(driven.cy - driver.cy, driven.cx - driver.cx) * 180 / Math.PI;
+      driver.phase = angle;
+      driven.phase = (angle + 180) - (360 / driven.teeth) / 2;
     }
-    // Inner ring for large gear
-    const innerRing = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-    innerRing.setAttribute('r', largePitchR - toothDepth * 1.2);
-    innerRing.setAttribute('fill', 'none');
-    innerRing.setAttribute('stroke', '#7a6245');
-    innerRing.setAttribute('stroke-width', '3');
-    innerRing.setAttribute('opacity', '0.4');
-    spokesGroup.appendChild(innerRing);
 
-    // Position the small gear group
-    const smallGearGroup = document.getElementById('smallGear');
-    smallGearGroup.setAttribute('transform', `translate(${smallCx}, ${smallCy})`);
+    meshPhase(A, B);
 
-    // Position small label
-    document.getElementById('smallLabel').setAttribute('x', smallCx);
-    document.getElementById('smallLabel').setAttribute('y', smallCy + smallPitchR + 35);
+    const meshCD_angle = Math.atan2(D.cy - C.cy, D.cx - C.cx) * 180 / Math.PI;
+    C.phase = meshCD_angle;
+    D.phase = (meshCD_angle + 180) - (360 / D.teeth) / 2;
 
-    // Animation
-    // The small gear does 1 rev/sec, large does 1 rev/min.
-    // For meshing: when the small gear turns, the large gear turns inversely
-    // by the tooth ratio. 60:10 = 6:1, so 1 rev of small = 1/6 rev of large.
-    // But we want 60:1 speed ratio. The visual meshing won't be perfect at 60:1
-    // with a 6:1 tooth ratio, so we animate them at the desired speeds
-    // and offset the tooth phase to look right at the mesh point.
-    const smallRPM = 60; // 1 rev/sec
-    const largeRPM = 1;  // 1 rev/min
+    const meshEF_angle = Math.atan2(F.cy - E.cy, F.cx - E.cx) * 180 / Math.PI;
+    E.phase = meshEF_angle;
+    F.phase = (meshEF_angle + 180) - (360 / F.teeth) / 2;
 
+    const meshGH_angle = Math.atan2(H.cy - G.cy, H.cx - G.cx) * 180 / Math.PI;
+    G.phase = meshGH_angle;
+    H.phase = (meshGH_angle + 180) - (360 / H.teeth) / 2;
+
+    // --- Draw ---
+    function createGearGroup(g) {
+      const group = createEl('g', {});
+
+      group.appendChild(createEl('path', {
+        d: g.d, fill: g.fill, stroke: g.stroke, 'stroke-width': 1.5
+      }));
+
+      if (g.teeth >= 25) {
+        const n = 6;
+        for (let i = 0; i < n; i++) {
+          const a = (i * Math.PI * 2) / n;
+          group.appendChild(createEl('line', {
+            x1: (20 * Math.cos(a)).toFixed(1), y1: (20 * Math.sin(a)).toFixed(1),
+            x2: (g.root * 0.82 * Math.cos(a)).toFixed(1), y2: (g.root * 0.82 * Math.sin(a)).toFixed(1),
+            stroke: g.stroke, 'stroke-width': 2.5, opacity: 0.4
+          }));
+        }
+        group.appendChild(createEl('circle', {
+          r: g.root * 0.75, fill: 'none', stroke: g.stroke, 'stroke-width': 2, opacity: 0.3
+        }));
+      }
+
+      const hr = g.teeth >= 25 ? 16 : g.teeth >= 15 ? 10 : 8;
+      group.appendChild(createEl('circle', { r: hr, fill: g.fill, stroke: g.stroke, 'stroke-width': 1.5 }));
+      group.appendChild(createEl('circle', { r: hr * 0.35, fill: '#1a1a2e', stroke: g.stroke, 'stroke-width': 1 }));
+
+      // Seconds needle on F
+      if (g.id === 'F') {
+        const needleR = 45;
+        const needleAngleRad = (-g.phase - 90) * Math.PI / 180;
+        const nx = Math.cos(needleAngleRad);
+        const ny = Math.sin(needleAngleRad);
+        group.appendChild(createEl('line', {
+          x1: (-nx * 6).toFixed(2), y1: (-ny * 6).toFixed(2),
+          x2: (nx * needleR).toFixed(2), y2: (ny * needleR).toFixed(2),
+          stroke: '#e05030', 'stroke-width': 2, 'stroke-linecap': 'round'
+        }));
+        group.appendChild(createEl('circle', {
+          r: 4, fill: '#e05030', stroke: '#c04020', 'stroke-width': 1
+        }));
+      }
+
+      g.group = group;
+      return group;
+    }
+
+    // Draw order: large gears back, then smaller/compound on top
+    svg.appendChild(createGearGroup(B));
+    svg.appendChild(createGearGroup(D));
+    svg.appendChild(createGearGroup(A));
+    svg.appendChild(createGearGroup(C));
+    svg.appendChild(createGearGroup(E));
+    svg.appendChild(createGearGroup(F));
+    svg.appendChild(createGearGroup(H));
+    svg.appendChild(createGearGroup(G));
+
+    // --- Seconds dial on F (static) ---
+    const dialR = 45;
+    const dialGroup = createEl('g', { transform: `translate(${F.cx}, ${F.cy})` });
+
+    dialGroup.appendChild(createEl('circle', {
+      r: dialR, fill: '#1a1a2e', 'fill-opacity': 0.35,
+      stroke: '#8a95a8', 'stroke-width': 1
+    }));
+
+    for (let i = 0; i < 60; i++) {
+      const a = (i * Math.PI * 2) / 60 - Math.PI / 2;
+      const isMajor = i % 5 === 0;
+      const inner = isMajor ? dialR - 8 : dialR - 4;
+      dialGroup.appendChild(createEl('line', {
+        x1: (inner * Math.cos(a)).toFixed(2), y1: (inner * Math.sin(a)).toFixed(2),
+        x2: (dialR * Math.cos(a)).toFixed(2), y2: (dialR * Math.sin(a)).toFixed(2),
+        stroke: '#c0c8d8', 'stroke-width': isMajor ? 1.5 : 0.5, opacity: isMajor ? 0.8 : 0.4
+      }));
+    }
+
+    for (let i = 0; i < 12; i++) {
+      const sec = i * 5;
+      const a = (i * Math.PI * 2) / 12 - Math.PI / 2;
+      const nr = dialR - 15;
+      const label = createEl('text', {
+        x: (nr * Math.cos(a)).toFixed(2),
+        y: (nr * Math.sin(a) + 3).toFixed(2),
+        'text-anchor': 'middle', fill: '#c0c8d8', 'font-size': 8, opacity: 0.7
+      });
+      label.textContent = sec === 0 ? '60' : sec;
+      dialGroup.appendChild(label);
+    }
+
+    svg.appendChild(dialGroup);
+
+    // --- Labels ---
+    function addLabel(text, x, y, color, size) {
+      const el = createEl('text', {
+        x, y, 'text-anchor': 'middle', fill: color, 'font-size': size || 12, opacity: 0.7
+      });
+      el.textContent = text;
+      svg.appendChild(el);
+    }
+
+    addLabel('1 rev/sec', A.cx + 30, A.cy - 8, '#8a95a8', 11);
+    addLabel('seconds', F.cx + dialR + 30, F.cy, '#907840', 11);
+    addLabel('1 rev / 6 min', H.cx, H.cy + H.outer + 20, '#b08d6a', 11);
+    addLabel('360:1', H.cx, H.cy + H.outer + 36, '#556', 10);
+
+    // --- Animate ---
     let startTime = null;
-
     function animate(timestamp) {
       if (!startTime) startTime = timestamp;
-      const elapsed = (timestamp - startTime) / 1000; // seconds
-
-      // Small gear: 1 rev/sec = 360 deg/sec
-      const smallAngle = elapsed * 360;
-
-      // Large gear: 1 rev/min = 6 deg/sec, counter-rotate for meshing
-      const largeAngle = -elapsed * 6;
-
-      // Apply rotations
-      smallGearGroup.setAttribute('transform',
-        `translate(${smallCx}, ${smallCy}) rotate(${smallAngle})`);
-      document.getElementById('largeGear').setAttribute('transform',
-        `translate(${largeCx}, ${largeCy}) rotate(${largeAngle})`);
-
+      const t = (timestamp - startTime) / 1000;
+      for (const g of gears) {
+        const angle = g.phase + g.omega * t;
+        g.group.setAttribute('transform',
+          `translate(${g.cx.toFixed(1)}, ${g.cy.toFixed(1)}) rotate(${angle.toFixed(2)})`);
+      }
       requestAnimationFrame(animate);
     }
-
     requestAnimationFrame(animate);
   </script>
 </body>
