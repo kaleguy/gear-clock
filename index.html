@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gear Clock</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #1a1a2e;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      overflow: hidden;
+    }
+    svg {
+      width: 100vw;
+      height: 100vh;
+      filter: drop-shadow(0 0 20px rgba(100, 140, 200, 0.15));
+    }
+  </style>
+</head>
+<body>
+  <svg id="clock" preserveAspectRatio="xMidYMid meet"></svg>
+
+  <script>
+    if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+    window.scrollTo(0, 0);
+
+    const svg = document.getElementById('clock');
+    const ns = 'http://www.w3.org/2000/svg';
+
+    function createEl(tag, attrs) {
+      const el = document.createElementNS(ns, tag);
+      for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, String(v));
+      return el;
+    }
+
+    function gearPath(numTeeth, mod) {
+      const pr = (numTeeth * mod) / 2;
+      const outer = pr + mod;
+      const root = pr - mod * 1.25;
+      const ta = (2 * Math.PI) / numTeeth;
+      let d = '';
+      for (let i = 0; i < numTeeth; i++) {
+        const c = i * ta;
+        const a0 = c - ta / 4, a1 = c, a2 = c + ta / 4, a3 = c + ta * 3 / 4;
+        if (i === 0) d += `M ${(root * Math.cos(a0)).toFixed(2)} ${(root * Math.sin(a0)).toFixed(2)} `;
+        d += `L ${(outer * Math.cos(a1)).toFixed(2)} ${(outer * Math.sin(a1)).toFixed(2)} `;
+        d += `L ${(root * Math.cos(a2)).toFixed(2)} ${(root * Math.sin(a2)).toFixed(2)} `;
+        d += `A ${root.toFixed(2)} ${root.toFixed(2)} 0 0 1 ${(root * Math.cos(a3)).toFixed(2)} ${(root * Math.sin(a3)).toFixed(2)} `;
+      }
+      return { d: d + 'Z', pr, outer, root };
+    }
+
+    const defs = createEl('defs', {});
+    defs.innerHTML = `
+      <radialGradient id="silver" cx="50%" cy="38%" r="55%">
+        <stop offset="0%" stop-color="#d0d8e8"/>
+        <stop offset="50%" stop-color="#8a95a8"/>
+        <stop offset="100%" stop-color="#5a6577"/>
+      </radialGradient>
+      <radialGradient id="brass" cx="50%" cy="38%" r="55%">
+        <stop offset="0%" stop-color="#e8d4a0"/>
+        <stop offset="50%" stop-color="#b08d5a"/>
+        <stop offset="100%" stop-color="#7a6240"/>
+      </radialGradient>
+      <radialGradient id="copper" cx="50%" cy="38%" r="55%">
+        <stop offset="0%" stop-color="#e8b89a"/>
+        <stop offset="50%" stop-color="#b07050"/>
+        <stop offset="100%" stop-color="#7a4a30"/>
+      </radialGradient>
+      <radialGradient id="darkBrass" cx="50%" cy="38%" r="55%">
+        <stop offset="0%" stop-color="#c8b878"/>
+        <stop offset="50%" stop-color="#907840"/>
+        <stop offset="100%" stop-color="#605020"/>
+      </radialGradient>
+    `;
+    svg.appendChild(defs);
+
+    const mod = 2.5;
+
+    const gears = [
+      { id: 'A', teeth: 10, fill: 'url(#silver)',    stroke: '#3a4555' },
+      { id: 'B', teeth: 60, fill: 'url(#brass)',     stroke: '#5a4a32' },
+      { id: 'C', teeth: 10, fill: 'url(#copper)',    stroke: '#5a3a28' },
+      { id: 'D', teeth: 60, fill: 'url(#brass)',     stroke: '#5a4a32' },
+      { id: 'E', teeth: 12, fill: 'url(#copper)',    stroke: '#5a3a28' },
+      { id: 'F', teeth: 20, fill: 'url(#darkBrass)', stroke: '#4a3a18' },
+      { id: 'G', teeth: 10, fill: 'url(#copper)',    stroke: '#5a3a28' },
+      { id: 'H', teeth: 60, fill: 'url(#brass)',     stroke: '#5a4a32' },
+      { id: 'I', teeth: 10, fill: 'url(#copper)',    stroke: '#5a3a28' },  // compound on H
+      { id: 'M', teeth: 10, fill: 'url(#silver)',    stroke: '#3a4555' },  // idler — reverses direction
+      { id: 'J', teeth: 20, fill: 'url(#darkBrass)', stroke: '#4a3a18' },  // 2:1 (ratio unchanged, M cancels)
+      { id: 'K', teeth: 10, fill: 'url(#copper)',    stroke: '#5a3a28' },  // compound on J
+      { id: 'L', teeth: 50, fill: 'url(#brass)',     stroke: '#5a4a32' },  // 5:1, total 10:1
+      { id: 'N', teeth: 10, fill: 'url(#copper)',    stroke: '#5a3a28' },  // compound on L
+      { id: 'O', teeth: 30, fill: 'url(#brass)',     stroke: '#5a4a32' },  // 3:1
+      { id: 'P', teeth: 10, fill: 'url(#copper)',    stroke: '#5a3a28' },  // compound on O
+      { id: 'Q', teeth: 40, fill: 'url(#darkBrass)', stroke: '#4a3a18' },  // 4:1, total 12:1 → 1 rev/12hr
+    ];
+
+    for (const g of gears) Object.assign(g, gearPath(g.teeth, mod));
+    const [A, B, C, D, E, F, G, H, I, M, J, K, L, N, O, P, Q] = gears;
+
+    // --- Portrait column layout ---
+    // Dials (F, L, Q) are vertically aligned at dialX.
+    // Intermediate gears zigzag but dial gears snap to the center line.
+
+    const dialX = 210; // center of 420-wide SVG
+
+    // Helper: position driven gear below driver, choosing angle so driven.cx = targetX
+    // If targetX is null, use a fixed angle offset
+    function posBelow(driver, driven, targetX, fallbackAngle) {
+      const dist = driver.pr + driven.pr;
+      if (targetX != null) {
+        const dx = targetX - driver.cx;
+        const clampedDx = Math.max(-dist * 0.95, Math.min(dist * 0.95, dx));
+        const dy = Math.sqrt(dist * dist - clampedDx * clampedDx);
+        driven.cx = driver.cx + clampedDx;
+        driven.cy = driver.cy + dy;
+      } else {
+        driven.cx = driver.cx + dist * Math.cos(fallbackAngle);
+        driven.cy = driver.cy + dist * Math.sin(fallbackAngle);
+      }
+    }
+
+    // B anchored near top
+    B.cx = dialX - 20; B.cy = 150;
+
+    // A above-right of B
+    const angleAB = -Math.PI / 2 + 0.8;
+    A.cx = B.cx + (A.pr + B.pr) * Math.cos(angleAB);
+    A.cy = B.cy + (A.pr + B.pr) * Math.sin(angleAB);
+
+    // C compound on B
+    C.cx = B.cx; C.cy = B.cy;
+
+    // D below C, slightly right
+    posBelow(C, D, null, Math.PI / 2 - 0.4);
+
+    // E compound on D
+    E.cx = D.cx; E.cy = D.cy;
+
+    // F (seconds dial) — align to dialX
+    posBelow(E, F, dialX);
+
+    // G compound on F
+    G.cx = F.cx; G.cy = F.cy;
+
+    // H below G, offset right
+    posBelow(G, H, null, Math.PI / 2 - 0.3);
+
+    // I compound on H
+    I.cx = H.cx; I.cy = H.cy;
+
+    // M (idler) below I, offset left
+    posBelow(I, M, null, Math.PI / 2 + 0.5);
+
+    // J below M, offset right
+    posBelow(M, J, null, Math.PI / 2 - 0.5);
+
+    // K compound on J
+    K.cx = J.cx; K.cy = J.cy;
+
+    // L (minute dial) — align to dialX
+    posBelow(K, L, dialX);
+
+    // N compound on L
+    N.cx = L.cx; N.cy = L.cy;
+
+    // O below N, offset right
+    posBelow(N, O, null, Math.PI / 2 - 0.4);
+
+    // P compound on O
+    P.cx = O.cx; P.cy = O.cy;
+
+    // Q (hour dial) — align to dialX
+    posBelow(P, Q, dialX);
+
+    // --- Compute viewBox to tightly fit all gears ---
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    for (const g of gears) {
+      const r = g.outer;
+      minX = Math.min(minX, g.cx - r);
+      minY = Math.min(minY, g.cy - r);
+      maxX = Math.max(maxX, g.cx + r);
+      maxY = Math.max(maxY, g.cy + r);
+    }
+    // Add padding for dials and labels
+    const pad = 30;
+    minX -= pad; minY -= pad; maxX += pad; maxY += pad;
+    svg.setAttribute('viewBox', `${minX.toFixed(0)} ${minY.toFixed(0)} ${(maxX - minX).toFixed(0)} ${(maxY - minY).toFixed(0)}`);
+
+    // --- Angular velocities ---
+    A.omega = -360;
+    B.omega = -A.omega * (A.teeth / B.teeth);
+    C.omega = B.omega;
+    D.omega = -C.omega * (C.teeth / D.teeth);
+    E.omega = D.omega;
+    F.omega = -E.omega * (E.teeth / F.teeth);
+    G.omega = F.omega;
+    H.omega = -G.omega * (G.teeth / H.teeth);
+    I.omega = H.omega;                              // same shaft as H
+    M.omega = -I.omega * (I.teeth / M.teeth);       // idler, flips direction
+    J.omega = -M.omega * (M.teeth / J.teeth);       // 2:1 (M cancels in ratio)
+    K.omega = J.omega;                              // same shaft as J
+    L.omega = -K.omega * (K.teeth / L.teeth);       // 5:1, 1 rev/hour CW!
+    N.omega = L.omega;                              // same shaft as L
+    O.omega = -N.omega * (N.teeth / O.teeth);       // 3:1
+    P.omega = O.omega;                              // same shaft as O
+    Q.omega = -P.omega * (P.teeth / Q.teeth);       // 4:1, 1 rev/12hr
+
+    // --- Phase alignment ---
+    function meshPhase(driver, driven) {
+      const angle = Math.atan2(driven.cy - driver.cy, driven.cx - driver.cx) * 180 / Math.PI;
+      driver.phase = angle;
+      driven.phase = (angle + 180) - (360 / driven.teeth) / 2;
+    }
+
+    meshPhase(A, B);
+
+    const meshCD_angle = Math.atan2(D.cy - C.cy, D.cx - C.cx) * 180 / Math.PI;
+    C.phase = meshCD_angle;
+    D.phase = (meshCD_angle + 180) - (360 / D.teeth) / 2;
+
+    const meshEF_angle = Math.atan2(F.cy - E.cy, F.cx - E.cx) * 180 / Math.PI;
+    E.phase = meshEF_angle;
+    F.phase = (meshEF_angle + 180) - (360 / F.teeth) / 2;
+
+    const meshGH_angle = Math.atan2(H.cy - G.cy, H.cx - G.cx) * 180 / Math.PI;
+    G.phase = meshGH_angle;
+    H.phase = (meshGH_angle + 180) - (360 / H.teeth) / 2;
+
+    const meshIM_angle = Math.atan2(M.cy - I.cy, M.cx - I.cx) * 180 / Math.PI;
+    I.phase = meshIM_angle;
+    M.phase = (meshIM_angle + 180) - (360 / M.teeth) / 2;
+
+    const meshMJ_angle = Math.atan2(J.cy - M.cy, J.cx - M.cx) * 180 / Math.PI;
+    // M.phase already set, just compute J's
+    J.phase = (meshMJ_angle + 180) - (360 / J.teeth) / 2;
+
+    const meshKL_angle = Math.atan2(L.cy - K.cy, L.cx - K.cx) * 180 / Math.PI;
+    K.phase = meshKL_angle;
+    L.phase = (meshKL_angle + 180) - (360 / L.teeth) / 2;
+
+    const meshNO_angle = Math.atan2(O.cy - N.cy, O.cx - N.cx) * 180 / Math.PI;
+    N.phase = meshNO_angle;
+    O.phase = (meshNO_angle + 180) - (360 / O.teeth) / 2;
+
+    const meshPQ_angle = Math.atan2(Q.cy - P.cy, Q.cx - P.cx) * 180 / Math.PI;
+    P.phase = meshPQ_angle;
+    Q.phase = (meshPQ_angle + 180) - (360 / Q.teeth) / 2;
+
+    // --- Draw ---
+    function createGearGroup(g) {
+      const group = createEl('g', {});
+
+      group.appendChild(createEl('path', {
+        d: g.d, fill: g.fill, stroke: g.stroke, 'stroke-width': 1.5
+      }));
+
+      if (g.teeth >= 25) {
+        const n = 6;
+        for (let i = 0; i < n; i++) {
+          const a = (i * Math.PI * 2) / n;
+          group.appendChild(createEl('line', {
+            x1: (20 * Math.cos(a)).toFixed(1), y1: (20 * Math.sin(a)).toFixed(1),
+            x2: (g.root * 0.82 * Math.cos(a)).toFixed(1), y2: (g.root * 0.82 * Math.sin(a)).toFixed(1),
+            stroke: g.stroke, 'stroke-width': 2.5, opacity: 0.4
+          }));
+        }
+        group.appendChild(createEl('circle', {
+          r: g.root * 0.75, fill: 'none', stroke: g.stroke, 'stroke-width': 2, opacity: 0.3
+        }));
+      }
+
+      const hr = g.teeth >= 25 ? 16 : g.teeth >= 15 ? 10 : 8;
+      group.appendChild(createEl('circle', { r: hr, fill: g.fill, stroke: g.stroke, 'stroke-width': 1.5 }));
+      group.appendChild(createEl('circle', { r: hr * 0.35, fill: '#1a1a2e', stroke: g.stroke, 'stroke-width': 1 }));
+
+      g.group = group;
+      return group;
+    }
+
+    // Draw order: large gears back, then smaller/compound on top
+    svg.appendChild(createGearGroup(B));
+    svg.appendChild(createGearGroup(D));
+    svg.appendChild(createGearGroup(A));
+    svg.appendChild(createGearGroup(C));
+    svg.appendChild(createGearGroup(E));
+    svg.appendChild(createGearGroup(F));
+    svg.appendChild(createGearGroup(H));
+    svg.appendChild(createGearGroup(G));
+    svg.appendChild(createGearGroup(J));
+    svg.appendChild(createGearGroup(M));
+    svg.appendChild(createGearGroup(I));
+    svg.appendChild(createGearGroup(L));
+    svg.appendChild(createGearGroup(K));
+    svg.appendChild(createGearGroup(O));
+    svg.appendChild(createGearGroup(Q));
+    svg.appendChild(createGearGroup(N));
+    svg.appendChild(createGearGroup(P));
+
+    // --- Seconds dial on F (static) ---
+    const dialR = 45;
+    const dialGroup = createEl('g', { transform: `translate(${F.cx}, ${F.cy})` });
+
+    dialGroup.appendChild(createEl('circle', {
+      r: dialR, fill: '#1a1a2e', 'fill-opacity': 0.35,
+      stroke: '#e05030', 'stroke-width': 1
+    }));
+
+    for (let i = 0; i < 60; i++) {
+      const a = (i * Math.PI * 2) / 60 - Math.PI / 2;
+      const isMajor = i % 5 === 0;
+      const inner = isMajor ? dialR - 8 : dialR - 4;
+      dialGroup.appendChild(createEl('line', {
+        x1: (inner * Math.cos(a)).toFixed(2), y1: (inner * Math.sin(a)).toFixed(2),
+        x2: (dialR * Math.cos(a)).toFixed(2), y2: (dialR * Math.sin(a)).toFixed(2),
+        stroke: '#e88070', 'stroke-width': isMajor ? 1.5 : 0.5, opacity: isMajor ? 0.8 : 0.4
+      }));
+    }
+
+    for (let i = 0; i < 12; i++) {
+      const sec = i * 5;
+      const a = (i * Math.PI * 2) / 12 - Math.PI / 2;
+      const nr = dialR - 15;
+      const label = createEl('text', {
+        x: (nr * Math.cos(a)).toFixed(2),
+        y: (nr * Math.sin(a) + 3).toFixed(2),
+        'text-anchor': 'middle', fill: '#e88070', 'font-size': 8, opacity: 0.7
+      });
+      label.textContent = sec === 0 ? '60' : sec;
+      dialGroup.appendChild(label);
+    }
+
+    svg.appendChild(dialGroup);
+
+    // --- Labels ---
+    function addLabel(text, x, y, color, size) {
+      const el = createEl('text', {
+        x, y, 'text-anchor': 'middle', fill: color, 'font-size': size || 12, opacity: 0.7
+      });
+      el.textContent = text;
+      svg.appendChild(el);
+    }
+
+    addLabel('1 rev/sec', A.cx + 30, A.cy - 8, '#8a95a8', 11);
+    const secLabel = createEl('text', {
+      x: F.cx + dialR + 30, y: F.cy, 'text-anchor': 'middle',
+      fill: '#e05030', 'font-size': 11, opacity: 0.85,
+      filter: 'drop-shadow(0 0 3px rgba(0,0,0,0.8))'
+    });
+    secLabel.textContent = 'seconds';
+    svg.appendChild(secLabel);
+    // --- Minute dial on L (static, clockwise) ---
+    const minDialR = 80;
+    const minDialGroup = createEl('g', { transform: `translate(${L.cx}, ${L.cy})` });
+
+    minDialGroup.appendChild(createEl('circle', {
+      r: minDialR, fill: '#1a1a2e', 'fill-opacity': 0.4,
+      stroke: '#4090e0', 'stroke-width': 1.5
+    }));
+
+    for (let i = 0; i < 60; i++) {
+      const a = (i * Math.PI * 2) / 60 - Math.PI / 2;
+      const isMajor = i % 5 === 0;
+      const inner = isMajor ? minDialR - 10 : minDialR - 5;
+      minDialGroup.appendChild(createEl('line', {
+        x1: (inner * Math.cos(a)).toFixed(2), y1: (inner * Math.sin(a)).toFixed(2),
+        x2: (minDialR * Math.cos(a)).toFixed(2), y2: (minDialR * Math.sin(a)).toFixed(2),
+        stroke: '#90c0e8', 'stroke-width': isMajor ? 1.5 : 0.5, opacity: isMajor ? 0.9 : 0.4
+      }));
+    }
+
+    for (let i = 0; i < 12; i++) {
+      const min = i * 5;
+      const a = (i * Math.PI * 2) / 12 - Math.PI / 2;
+      const nr = minDialR - 18;
+      const label = createEl('text', {
+        x: (nr * Math.cos(a)).toFixed(2),
+        y: (nr * Math.sin(a) + 3.5).toFixed(2),
+        'text-anchor': 'middle', fill: '#90c0e8', 'font-size': 10, opacity: 0.8
+      });
+      label.textContent = min === 0 ? '60' : min;
+      minDialGroup.appendChild(label);
+    }
+
+    svg.appendChild(minDialGroup);
+
+    addLabel('minutes', L.cx + minDialR + 25, L.cy, '#4090e0', 11);
+    addLabel('3,600:1', L.cx, L.cy + minDialR + 18, '#556', 10);
+
+    // --- Hour dial on Q (static, 1-12) ---
+    const hrDialR = 65;
+    const hrDialGroup = createEl('g', { transform: `translate(${Q.cx}, ${Q.cy})` });
+
+    hrDialGroup.appendChild(createEl('circle', {
+      r: hrDialR, fill: '#1a1a2e', 'fill-opacity': 0.4,
+      stroke: '#50c050', 'stroke-width': 1.5
+    }));
+
+    for (let i = 0; i < 60; i++) {
+      const a = (i * Math.PI * 2) / 60 - Math.PI / 2;
+      const isMajor = i % 5 === 0;
+      const inner = isMajor ? hrDialR - 10 : hrDialR - 5;
+      hrDialGroup.appendChild(createEl('line', {
+        x1: (inner * Math.cos(a)).toFixed(2), y1: (inner * Math.sin(a)).toFixed(2),
+        x2: (hrDialR * Math.cos(a)).toFixed(2), y2: (hrDialR * Math.sin(a)).toFixed(2),
+        stroke: '#80d080', 'stroke-width': isMajor ? 1.5 : 0.5, opacity: isMajor ? 0.9 : 0.4
+      }));
+    }
+
+    for (let i = 0; i < 12; i++) {
+      const hr = i === 0 ? 12 : i;
+      const a = (i * Math.PI * 2) / 12 - Math.PI / 2;
+      const nr = hrDialR - 18;
+      const label = createEl('text', {
+        x: (nr * Math.cos(a)).toFixed(2),
+        y: (nr * Math.sin(a) + 3.5).toFixed(2),
+        'text-anchor': 'middle', fill: '#80d080', 'font-size': 10, opacity: 0.8
+      });
+      label.textContent = hr;
+      hrDialGroup.appendChild(label);
+    }
+
+    svg.appendChild(hrDialGroup);
+
+    addLabel('hours', Q.cx + hrDialR + 25, Q.cy, '#50c050', 11);
+    addLabel('43,200:1', Q.cx, Q.cy + hrDialR + 18, '#556', 10);
+
+    // --- Needle overlays (drawn last, on top of dials) ---
+    function createNeedle(gear, needleR, color, darkColor, width) {
+      const ng = createEl('g', {});
+      const needleAngleRad = (-gear.phase - 90) * Math.PI / 180;
+      const nx = Math.cos(needleAngleRad);
+      const ny = Math.sin(needleAngleRad);
+      ng.appendChild(createEl('line', {
+        x1: (-nx * 8).toFixed(2), y1: (-ny * 8).toFixed(2),
+        x2: (nx * needleR).toFixed(2), y2: (ny * needleR).toFixed(2),
+        stroke: color, 'stroke-width': width, 'stroke-linecap': 'round'
+      }));
+      ng.appendChild(createEl('circle', {
+        r: 5, fill: color, stroke: darkColor, 'stroke-width': 1
+      }));
+      gear.needle = ng;
+      svg.appendChild(ng);
+      return ng;
+    }
+
+    createNeedle(F, 45, '#e05030', '#c04020', 2);
+    createNeedle(L, 80, '#4090e0', '#3070b0', 2.5);
+    createNeedle(Q, 65, '#50c050', '#309030', 3);
+
+    // --- Animate ---
+    // Offset start time so hands show current time.
+    // At elapsed t seconds: F needle is at 6t from 12 (CW seconds),
+    // L needle is at -0.1t from 12 (CCW minutes).
+    // To show current seconds S and minutes M:
+    //   6t = S*6  →  t = S
+    //   0.1t = M*6 + S*0.1  →  t = M*60 + S  (same!)
+    // So offset = currentMinutes * 60 + currentSeconds
+    const now = new Date();
+    const timeOffset = (now.getHours() % 12) * 3600 + now.getMinutes() * 60 + now.getSeconds() + now.getMilliseconds() / 1000;
+
+    let startTime = null;
+    function animate(timestamp) {
+      if (!startTime) startTime = timestamp;
+      const t = (timestamp - startTime) / 1000 + timeOffset;
+      for (const g of gears) {
+        const angle = g.phase + g.omega * t;
+        g.group.setAttribute('transform',
+          `translate(${g.cx.toFixed(1)}, ${g.cy.toFixed(1)}) rotate(${angle.toFixed(2)})`);
+        if (g.needle) {
+          g.needle.setAttribute('transform',
+            `translate(${g.cx.toFixed(1)}, ${g.cy.toFixed(1)}) rotate(${angle.toFixed(2)})`);
+        }
+      }
+      requestAnimationFrame(animate);
+    }
+    requestAnimationFrame(animate);
+  </script>
+</body>
+</html>
