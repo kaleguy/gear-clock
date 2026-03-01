@@ -11,19 +11,24 @@
       display: flex;
       justify-content: center;
       align-items: center;
-      min-height: 100vh;
+      height: 100vh;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
       overflow: hidden;
     }
     svg {
+      width: 100vw;
+      height: 100vh;
       filter: drop-shadow(0 0 20px rgba(100, 140, 200, 0.15));
     }
   </style>
 </head>
 <body>
-  <svg id="clock" width="420" height="1550" viewBox="0 0 420 1550"></svg>
+  <svg id="clock" preserveAspectRatio="xMidYMid meet"></svg>
 
   <script>
+    if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+    window.scrollTo(0, 0);
+
     const svg = document.getElementById('clock');
     const ns = 'http://www.w3.org/2000/svg';
 
@@ -101,76 +106,93 @@
     const [A, B, C, D, E, F, G, H, I, M, J, K, L, N, O, P, Q] = gears;
 
     // --- Portrait column layout ---
-    // Gears zigzag down the column, alternating slightly left and right
+    // Dials (F, L, Q) are vertically aligned at dialX.
+    // Intermediate gears zigzag but dial gears snap to the center line.
 
-    // B anchored near top center
-    B.cx = 190; B.cy = 150;
+    const dialX = 210; // center of 420-wide SVG
 
-    // A above B, slightly right
-    const angleAB = -Math.PI / 2 + 0.3;
+    // Helper: position driven gear below driver, choosing angle so driven.cx = targetX
+    // If targetX is null, use a fixed angle offset
+    function posBelow(driver, driven, targetX, fallbackAngle) {
+      const dist = driver.pr + driven.pr;
+      if (targetX != null) {
+        const dx = targetX - driver.cx;
+        const clampedDx = Math.max(-dist * 0.95, Math.min(dist * 0.95, dx));
+        const dy = Math.sqrt(dist * dist - clampedDx * clampedDx);
+        driven.cx = driver.cx + clampedDx;
+        driven.cy = driver.cy + dy;
+      } else {
+        driven.cx = driver.cx + dist * Math.cos(fallbackAngle);
+        driven.cy = driver.cy + dist * Math.sin(fallbackAngle);
+      }
+    }
+
+    // B anchored near top
+    B.cx = dialX - 20; B.cy = 150;
+
+    // A above-right of B
+    const angleAB = -Math.PI / 2 + 0.8;
     A.cx = B.cx + (A.pr + B.pr) * Math.cos(angleAB);
     A.cy = B.cy + (A.pr + B.pr) * Math.sin(angleAB);
 
     // C compound on B
     C.cx = B.cx; C.cy = B.cy;
 
-    // D below B, slightly right
-    const angleCD = Math.PI / 2 - 0.4;
-    D.cx = C.cx + (C.pr + D.pr) * Math.cos(angleCD);
-    D.cy = C.cy + (C.pr + D.pr) * Math.sin(angleCD);
+    // D below C, slightly right
+    posBelow(C, D, null, Math.PI / 2 - 0.4);
 
     // E compound on D
     E.cx = D.cx; E.cy = D.cy;
 
-    // F below D, slightly left
-    const angleEF = Math.PI / 2 + 0.4;
-    F.cx = E.cx + (E.pr + F.pr) * Math.cos(angleEF);
-    F.cy = E.cy + (E.pr + F.pr) * Math.sin(angleEF);
+    // F (seconds dial) — align to dialX
+    posBelow(E, F, dialX);
 
     // G compound on F
     G.cx = F.cx; G.cy = F.cy;
 
-    // H below F, slightly right
-    const angleGH = Math.PI / 2 - 0.3;
-    H.cx = G.cx + (G.pr + H.pr) * Math.cos(angleGH);
-    H.cy = G.cy + (G.pr + H.pr) * Math.sin(angleGH);
+    // H below G, offset right
+    posBelow(G, H, null, Math.PI / 2 - 0.3);
 
     // I compound on H
     I.cx = H.cx; I.cy = H.cy;
 
-    // M (idler) meshes with I, below-left
-    const angleIM = Math.PI / 2 + 0.5;
-    M.cx = I.cx + (I.pr + M.pr) * Math.cos(angleIM);
-    M.cy = I.cy + (I.pr + M.pr) * Math.sin(angleIM);
+    // M (idler) below I, offset left
+    posBelow(I, M, null, Math.PI / 2 + 0.5);
 
-    // J meshes with M, below-right
-    const angleMJ = Math.PI / 2 - 0.5;
-    J.cx = M.cx + (M.pr + J.pr) * Math.cos(angleMJ);
-    J.cy = M.cy + (M.pr + J.pr) * Math.sin(angleMJ);
+    // J below M, offset right
+    posBelow(M, J, null, Math.PI / 2 - 0.5);
 
     // K compound on J
     K.cx = J.cx; K.cy = J.cy;
 
-    // L below J, slightly left
-    const angleKL = Math.PI / 2 + 0.3;
-    L.cx = K.cx + (K.pr + L.pr) * Math.cos(angleKL);
-    L.cy = K.cy + (K.pr + L.pr) * Math.sin(angleKL);
+    // L (minute dial) — align to dialX
+    posBelow(K, L, dialX);
 
     // N compound on L
     N.cx = L.cx; N.cy = L.cy;
 
-    // O below L, slightly right
-    const angleNO = Math.PI / 2 - 0.4;
-    O.cx = N.cx + (N.pr + O.pr) * Math.cos(angleNO);
-    O.cy = N.cy + (N.pr + O.pr) * Math.sin(angleNO);
+    // O below N, offset right
+    posBelow(N, O, null, Math.PI / 2 - 0.4);
 
     // P compound on O
     P.cx = O.cx; P.cy = O.cy;
 
-    // Q below O, slightly left
-    const anglePQ = Math.PI / 2 + 0.3;
-    Q.cx = P.cx + (P.pr + Q.pr) * Math.cos(anglePQ);
-    Q.cy = P.cy + (P.pr + Q.pr) * Math.sin(anglePQ);
+    // Q (hour dial) — align to dialX
+    posBelow(P, Q, dialX);
+
+    // --- Compute viewBox to tightly fit all gears ---
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    for (const g of gears) {
+      const r = g.outer;
+      minX = Math.min(minX, g.cx - r);
+      minY = Math.min(minY, g.cy - r);
+      maxX = Math.max(maxX, g.cx + r);
+      maxY = Math.max(maxY, g.cy + r);
+    }
+    // Add padding for dials and labels
+    const pad = 30;
+    minX -= pad; minY -= pad; maxX += pad; maxY += pad;
+    svg.setAttribute('viewBox', `${minX.toFixed(0)} ${minY.toFixed(0)} ${(maxX - minX).toFixed(0)} ${(maxY - minY).toFixed(0)}`);
 
     // --- Angular velocities ---
     A.omega = -360;
@@ -288,7 +310,7 @@
 
     dialGroup.appendChild(createEl('circle', {
       r: dialR, fill: '#1a1a2e', 'fill-opacity': 0.35,
-      stroke: '#8a95a8', 'stroke-width': 1
+      stroke: '#e05030', 'stroke-width': 1
     }));
 
     for (let i = 0; i < 60; i++) {
@@ -298,7 +320,7 @@
       dialGroup.appendChild(createEl('line', {
         x1: (inner * Math.cos(a)).toFixed(2), y1: (inner * Math.sin(a)).toFixed(2),
         x2: (dialR * Math.cos(a)).toFixed(2), y2: (dialR * Math.sin(a)).toFixed(2),
-        stroke: '#c0c8d8', 'stroke-width': isMajor ? 1.5 : 0.5, opacity: isMajor ? 0.8 : 0.4
+        stroke: '#e88070', 'stroke-width': isMajor ? 1.5 : 0.5, opacity: isMajor ? 0.8 : 0.4
       }));
     }
 
@@ -309,7 +331,7 @@
       const label = createEl('text', {
         x: (nr * Math.cos(a)).toFixed(2),
         y: (nr * Math.sin(a) + 3).toFixed(2),
-        'text-anchor': 'middle', fill: '#c0c8d8', 'font-size': 8, opacity: 0.7
+        'text-anchor': 'middle', fill: '#e88070', 'font-size': 8, opacity: 0.7
       });
       label.textContent = sec === 0 ? '60' : sec;
       dialGroup.appendChild(label);
@@ -327,7 +349,13 @@
     }
 
     addLabel('1 rev/sec', A.cx + 30, A.cy - 8, '#8a95a8', 11);
-    addLabel('seconds', F.cx + dialR + 30, F.cy, '#907840', 11);
+    const secLabel = createEl('text', {
+      x: F.cx + dialR + 30, y: F.cy, 'text-anchor': 'middle',
+      fill: '#e05030', 'font-size': 11, opacity: 0.85,
+      filter: 'drop-shadow(0 0 3px rgba(0,0,0,0.8))'
+    });
+    secLabel.textContent = 'seconds';
+    svg.appendChild(secLabel);
     // --- Minute dial on L (static, clockwise) ---
     const minDialR = 80;
     const minDialGroup = createEl('g', { transform: `translate(${L.cx}, ${L.cy})` });
