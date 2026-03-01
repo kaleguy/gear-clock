@@ -8,9 +8,17 @@
   <meta name="theme-color" content="#1a1a2e">
   <link rel="apple-touch-icon" href="icon-192.png">
   <style>
+    :root {
+      --bg: #1a1a2e;
+      --toggle-color: #889;
+    }
+    :root.light {
+      --bg: #e8e4dc;
+      --toggle-color: #665;
+    }
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
-      background: #1a1a2e;
+      background: var(--bg);
       display: flex;
       justify-content: center;
       align-items: center;
@@ -23,9 +31,30 @@
       height: 100vh;
       filter: drop-shadow(0 0 20px rgba(100, 140, 200, 0.15));
     }
+    #theme-toggle {
+      position: fixed;
+      top: 12px;
+      right: 12px;
+      background: none;
+      border: 1.5px solid var(--toggle-color);
+      color: var(--toggle-color);
+      border-radius: 50%;
+      width: 32px;
+      height: 32px;
+      font-size: 16px;
+      cursor: pointer;
+      opacity: 0.6;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: opacity 0.2s;
+    }
+    #theme-toggle:hover { opacity: 1; }
   </style>
 </head>
 <body>
+  <button id="theme-toggle" title="Toggle light/dark mode">&#9790;</button>
   <svg id="clock" preserveAspectRatio="xMidYMid meet"></svg>
 
   <script>
@@ -311,10 +340,11 @@
     const dialR = 45;
     const dialGroup = createEl('g', { transform: `translate(${F.cx}, ${F.cy})` });
 
-    dialGroup.appendChild(createEl('circle', {
+    const secDialBg = createEl('circle', {
       r: dialR, fill: '#1a1a2e', 'fill-opacity': 0.35,
       stroke: '#e05030', 'stroke-width': 1
-    }));
+    });
+    dialGroup.appendChild(secDialBg);
 
     for (let i = 0; i < 60; i++) {
       const a = (i * Math.PI * 2) / 60 - Math.PI / 2;
@@ -363,10 +393,11 @@
     const minDialR = 80;
     const minDialGroup = createEl('g', { transform: `translate(${L.cx}, ${L.cy})` });
 
-    minDialGroup.appendChild(createEl('circle', {
+    const minDialBg = createEl('circle', {
       r: minDialR, fill: '#1a1a2e', 'fill-opacity': 0.4,
       stroke: '#4090e0', 'stroke-width': 1.5
-    }));
+    });
+    minDialGroup.appendChild(minDialBg);
 
     for (let i = 0; i < 60; i++) {
       const a = (i * Math.PI * 2) / 60 - Math.PI / 2;
@@ -401,10 +432,11 @@
     const hrDialR = 65;
     const hrDialGroup = createEl('g', { transform: `translate(${Q.cx}, ${Q.cy})` });
 
-    hrDialGroup.appendChild(createEl('circle', {
+    const hrDialBg = createEl('circle', {
       r: hrDialR, fill: '#1a1a2e', 'fill-opacity': 0.4,
       stroke: '#50c050', 'stroke-width': 1.5
-    }));
+    });
+    hrDialGroup.appendChild(hrDialBg);
 
     for (let i = 0; i < 60; i++) {
       const a = (i * Math.PI * 2) / 60 - Math.PI / 2;
@@ -485,6 +517,27 @@
       requestAnimationFrame(animate);
     }
     requestAnimationFrame(animate);
+
+    // --- Light/dark toggle ---
+    const darkBg = '#1a1a2e';
+    const lightBg = '#e8e4dc';
+    let isLight = localStorage.getItem('gear-clock-theme') === 'light';
+
+    function applyTheme() {
+      const bg = isLight ? lightBg : darkBg;
+      document.documentElement.classList.toggle('light', isLight);
+      // Update gear hub holes and dial backgrounds
+      svg.querySelectorAll(`[fill="${darkBg}"], [fill="${lightBg}"]`).forEach(el => el.setAttribute('fill', bg));
+      [secDialBg, minDialBg, hrDialBg].forEach(el => el.setAttribute('fill', bg));
+      document.getElementById('theme-toggle').innerHTML = isLight ? '&#9728;' : '&#9790;';
+      localStorage.setItem('gear-clock-theme', isLight ? 'light' : 'dark');
+    }
+
+    document.getElementById('theme-toggle').addEventListener('click', () => {
+      isLight = !isLight;
+      applyTheme();
+    });
+    applyTheme();
 
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('sw.js');
