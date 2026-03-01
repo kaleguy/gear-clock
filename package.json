@@ -1,0 +1,12 @@
+{
+  "name": "gear-clock",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "open index.html",
+    "deploy": "npx gh-pages -d ."
+  },
+  "devDependencies": {
+    "gh-pages": "^6.3.0"
+  }
+}
