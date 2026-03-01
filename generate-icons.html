@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html>
+<head><title>Generate PWA Icons</title></head>
+<body>
+<p>Right-click each image and "Save Image As" to save the icons, or they will auto-download.</p>
+<canvas id="c"></canvas>
+<script>
+function drawGearIcon(size) {
+  const c = document.getElementById('c');
+  c.width = c.height = size;
+  const ctx = c.getContext('2d');
+  const cx = size / 2, cy = size / 2;
+
+  // Background
+  ctx.fillStyle = '#1a1a2e';
+  ctx.fillRect(0, 0, size, size);
+
+  // Gear
+  const teeth = 12;
+  const pr = size * 0.28;
+  const outer = pr + size * 0.07;
+  const root = pr - size * 0.05;
+  const ta = (2 * Math.PI) / teeth;
+
+  ctx.beginPath();
+  for (let i = 0; i < teeth; i++) {
+    const ca = i * ta - Math.PI / 2;
+    const a0 = ca - ta / 4, a1 = ca, a2 = ca + ta / 4;
+    const x0 = cx + root * Math.cos(a0), y0 = cy + root * Math.sin(a0);
+    const x1 = cx + outer * Math.cos(a1), y1 = cy + outer * Math.sin(a1);
+    const x2 = cx + root * Math.cos(a2), y2 = cy + root * Math.sin(a2);
+    if (i === 0) ctx.moveTo(x0, y0);
+    ctx.lineTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    const a3 = ca + ta * 3 / 4;
+    ctx.arc(cx, cy, root, a2, a3);
+  }
+  ctx.closePath();
+
+  const grad = ctx.createRadialGradient(cx, cy * 0.8, 0, cx, cy, outer);
+  grad.addColorStop(0, '#e8d4a0');
+  grad.addColorStop(0.5, '#b08d5a');
+  grad.addColorStop(1, '#7a6240');
+  ctx.fillStyle = grad;
+  ctx.fill();
+  ctx.strokeStyle = '#5a4a32';
+  ctx.lineWidth = size * 0.01;
+  ctx.stroke();
+
+  // Hub
+  ctx.beginPath();
+  ctx.arc(cx, cy, size * 0.08, 0, Math.PI * 2);
+  ctx.fillStyle = grad;
+  ctx.fill();
+  ctx.stroke();
+
+  // Center hole
+  ctx.beginPath();
+  ctx.arc(cx, cy, size * 0.03, 0, Math.PI * 2);
+  ctx.fillStyle = '#1a1a2e';
+  ctx.fill();
+
+  // Clock hands
+  ctx.save();
+  ctx.translate(cx, cy);
+  // Hour hand (10 o'clock-ish)
+  ctx.strokeStyle = '#50c050';
+  ctx.lineWidth = size * 0.025;
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(0, 0);
+  const ha = -Math.PI / 3;
+  ctx.lineTo(Math.cos(ha) * size * 0.15, Math.sin(ha) * size * 0.15);
+  ctx.stroke();
+  // Minute hand (12 o'clock)
+  ctx.strokeStyle = '#4090e0';
+  ctx.lineWidth = size * 0.02;
+  ctx.beginPath();
+  ctx.moveTo(0, 0);
+  ctx.lineTo(0, -size * 0.22);
+  ctx.stroke();
+  ctx.restore();
+
+  return c.toDataURL('image/png');
+}
+
+function download(dataUrl, filename) {
+  const a = document.createElement('a');
+  a.href = dataUrl;
+  a.download = filename;
+  a.click();
+}
+
+const icon192 = drawGearIcon(192);
+download(icon192, 'icon-192.png');
+
+const icon512 = drawGearIcon(512);
+download(icon512, 'icon-512.png');
+</script>
+</body>
+</html>
