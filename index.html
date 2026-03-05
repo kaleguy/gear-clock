@@ -501,8 +501,14 @@
     const now = new Date();
     const timeOffset = (now.getHours() % 12) * 3600 + now.getMinutes() * 60 + now.getSeconds() + now.getMilliseconds() / 1000;
 
+    const fps = 40;
+    const frameInterval = 1000 / fps;
     let startTime = null;
+    let lastFrame = 0;
     function animate(timestamp) {
+      requestAnimationFrame(animate);
+      if (timestamp - lastFrame < frameInterval) return;
+      lastFrame = timestamp;
       if (!startTime) startTime = timestamp;
       const t = (timestamp - startTime) / 1000 + timeOffset;
       for (const g of gears) {
@@ -514,7 +520,6 @@
             `translate(${g.cx.toFixed(1)}, ${g.cy.toFixed(1)}) rotate(${angle.toFixed(2)})`);
         }
       }
-      requestAnimationFrame(animate);
     }
     requestAnimationFrame(animate);
 
